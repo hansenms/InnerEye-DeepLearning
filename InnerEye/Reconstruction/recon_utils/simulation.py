@@ -1,6 +1,6 @@
 import numpy as np
 
-def generate_birdcage_sensitivities(matrix_size = 256, number_of_coils = 8, relative_radius = 1.5, rotation = 0.0, normalize=True):
+def generate_birdcage_sensitivities(matrix_size = 256, number_of_coils = 8, relative_radius = 1.5, rotation = 0.0, normalize=True) -> np.ndarray:
     """ 
     Generates birdcage coil sensitivites.
 

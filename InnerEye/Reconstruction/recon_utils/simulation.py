@@ -1,37 +1,41 @@
 import numpy as np
+import torch
+import math
 
-def generate_birdcage_sensitivities(matrix_size = 256, number_of_coils = 8, relative_radius = 1.5, rotation = 0.0, normalize=True) -> np.ndarray:
+def generate_birdcage_sensitivities(matrix_size: int = 256, number_of_coils: int = 8, relative_radius: float = 1.5, rotation: float = 0.0, normalize: bool = True) -> torch.Tensor:
     """ 
-    Generates birdcage coil sensitivites.
+    Generates a PyTorch complex tensor with birdcage coil sensitivites.
 
     :param matrix_size: size of imaging matrix in pixels (default ``256``)
     :param number_of_coils: Number of simulated coils (default ``8``)
     :param relative_radius: Relative radius of birdcage (default ``1.5``)
+    :return torch.Tensor [Nc, Ny, Nx]
 
-    This function is heavily inspired by the mri_birdcage.m Matlab script in
-    Jeff Fessler's IRT package: http://web.eecs.umich.edu/~fessler/code/
+    This function is heavily inspired by:
+
+        1. The mri_birdcage.m Matlab script in Jeff Fessler's IRT package: http://web.eecs.umich.edu/~fessler/code/
+        2. generate_birdcage_sensitivities function from ISMRMRD Python tools (https://github.com/ismrmrd/ismrmrd-python-tools)
     """
 
-    out = np.zeros((number_of_coils,matrix_size,matrix_size),dtype=np.complex64)
+    out = torch.zeros((number_of_coils,matrix_size,matrix_size), dtype=torch.cfloat)
+    x_coord = torch.Tensor([x-matrix_size//2 for x in range(matrix_size)]).unsqueeze(0).repeat(matrix_size,1)/(matrix_size//2)
+    y_coord = torch.Tensor([y-matrix_size//2 for y in range(matrix_size)]).unsqueeze(-1).repeat(1,matrix_size)/(matrix_size//2)
+
     for c in range(0,number_of_coils):
-        coilx = relative_radius*np.cos(c*(2*np.pi/number_of_coils)+rotation)
-        coily = relative_radius*np.sin(c*(2*np.pi/number_of_coils)+rotation)
-        coil_phase = -c*(2*np.pi/number_of_coils)
-
-        for y in range(0,matrix_size):
-            y_co = float(y-matrix_size/2)/float(matrix_size/2)-coily
-            for x in range(0,matrix_size):
-                x_co = float(x-matrix_size/2)/float(matrix_size/2)-coilx
-                rr = np.sqrt(x_co**2+y_co**2)
-                phi = np.arctan2(x_co, -y_co) + coil_phase
-                out[c,y,x] =  (1/rr) * np.exp(1j*phi)
-
+        coilx = relative_radius*math.cos(c*(2*math.pi/number_of_coils)+rotation)
+        coily = relative_radius*math.sin(c*(2*math.pi/number_of_coils)+rotation)
+        coil_phase = -c*(2*math.pi/number_of_coils)
+        y_co = y_coord - coily
+        x_co = x_coord - coilx
+        rr = torch.sqrt(x_co**2 + y_co**2)
+        phi = torch.atan2(x_co,-y_co) + coil_phase
+        out[c,...] = 1/rr * torch.exp(1j*phi)
+        
     if normalize:
-         rss = np.squeeze(np.sqrt(np.sum(abs(out) ** 2, 0)))
-         out = out / np.tile(rss,(number_of_coils,1,1))
+         rss = torch.sqrt(torch.sum(torch.abs(out) ** 2, 0))
+         out = out / rss.unsqueeze(0)
 
     return out
-
 
 def phantom(matrix_size = 256, phantom_type = 'Modified Shepp-Logan', ellipses = None):
     """

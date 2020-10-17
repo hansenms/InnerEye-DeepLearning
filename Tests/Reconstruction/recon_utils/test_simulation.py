@@ -1,5 +1,4 @@
 from InnerEye.Reconstruction.recon_utils import simulation
-
 import torch
 
 def test_generate_birdcage_sensitivities() -> None:

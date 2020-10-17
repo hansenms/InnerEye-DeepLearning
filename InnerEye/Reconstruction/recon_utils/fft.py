@@ -1,6 +1,6 @@
 import torch
 
-def ifft(data: torch.Tensor, dim: tuple=None):
+def ifft(data: torch.Tensor, dim: Tuple[int, ...]=None):
     """ 
 
     Computes the inverse Fourier transform from (k-space to image)
